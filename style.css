@@ -1,0 +1,81 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin-top: 40px;
+}
+
+#board {
+    display: grid;
+    grid-template-columns: repeat(6, 100px);
+    gap: 5px;
+    justify-content: center;
+    margin: 20px auto;
+}
+
+.supply {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 20px 0;
+    min-height: 50px;
+}
+
+.cell {
+    width: 100px;
+    height: 100px;
+    font-size: 2rem;
+    cursor: pointer;
+}
+
+.cell.selected {
+    outline: 4px solid gold;
+}
+
+.piece {
+    width: 40px;
+    height: 40px;
+
+    border-radius: 50%;
+    border: 2px solid black;
+
+    cursor: pointer;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    font-weight: bold;
+    font-size: 1.2rem;
+
+    transition: 0.15s;
+}
+
+.piece.x {
+    background: #8ec5ff;
+}
+
+.piece.o {
+    background: #ffb5b5;
+}
+
+.piece.X {
+    background: #8ec5ff;
+}
+
+.piece.O {
+    background: #ffb5b5;
+}
+
+.piece.selected {
+    outline: 4px solid gold;
+    transform: scale(1.15);
+}
+
+.piece:hover {
+    transform: scale(1.1);
+}
+
+#status {
+    font-size: 1.2rem;
+    margin: 20px;
+}
