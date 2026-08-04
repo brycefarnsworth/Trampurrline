@@ -175,9 +175,9 @@ class UI {
     promoteSelectionHandler() {
         const selectedCells = [...document.querySelectorAll(".cell.selected")];
         const gamePhase = this.getGamePhase();
-        if (gamePhase === "promoteOne" && selectedCells.length !== 1) return;
-        if (gamePhase === "promoteThree" && selectedCells.length !== 3) return;
-        if (gamePhase === "promoteThreeOrOne" && selectedCells.length !== 3 && selectedCells.length !== 1) return;
+        if (gamePhase === PHASES.PromoteOne && selectedCells.length !== 1) return;
+        if (gamePhase === PHASES.PromoteThree && selectedCells.length !== 3) return;
+        if (gamePhase === PHASES.PromoteOneOrThree && selectedCells.length !== 3 && selectedCells.length !== 1) return;
         
         const points = selectedCells.map((cell) => this.indexToPoint(cell.dataset.index));
         if ((points.length === 3 && this.isInARow(points)) || points.length === 1) {
