@@ -33,6 +33,8 @@ class Board {
         this.#board = new Array(size).fill("").map(() => new Array(size).fill(""));
     }
 
+    getBoard() {return this.#board;}
+
     getSize() {return this.#size;}
 
     getPieceAt(point) {return this.#board[point.row][point.col];}
