@@ -8,21 +8,17 @@
 </head>
 <body>
 
-<h1>Bumper Tic Tac Toe</h1>
+    <h1>Bumper Tic Tac Toe</h1>
 
-<h2>Player X</h2>
-<div id="x-supply" class="supply"></div>
+    <h2>Choose a game mode</h2>
 
-<div id="board"></div>
-
-<h2>Player O</h2>
-<div id="o-supply" class="supply"></div>
-
-<p id="status"></p>
-
-<button id="restart">Restart</button>
-
-<script type="module" src="./main.js"></script>
+    <button onclick="window.location.href='/local'">
+        Play Locally
+    </button>
+    
+    <button onclick="window.location.href='/online'">
+        Play Online
+    </button>
 
 </body>
 </html>

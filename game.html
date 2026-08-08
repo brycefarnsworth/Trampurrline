@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bumper Tic Tac Toe</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>Bumper Tic Tac Toe</h1>
+
+<h2>Player X</h2>
+<div id="x-supply" class="supply"></div>
+
+<div id="board"></div>
+
+<h2>Player O</h2>
+<div id="o-supply" class="supply"></div>
+
+<p id="status"></p>
+
+<button id="restart">Restart</button>
+
+<script src="/socket.io/socket.io.js"></script>
+<script type="module">
+    if (window.location.pathname === "/local") {
+        await import("./main-local.js");
+    }
+    else if (window.location.pathname === "/online") {
+        await import("./main-online.js");
+    }
+</script>
+
+</body>
+</html>

@@ -1,13 +1,6 @@
 import Board from './board.js';
 import Player from './player.js';
-
-const PHASES = {
-    Place: "place",
-    PromoteOne: "promoteOne",
-    PromoteThree: "promoteThree",
-    PromoteOneOrThree: "promoteOneOrThree",
-    Win: "win"
-}
+import { PHASES } from "./constants.js";
 
 const PLAYER_IDS = ["X", "O", "C", "Z", "S", "V"];
 
@@ -17,6 +10,7 @@ class Game {
     #players;
     #gamePhase;
     #currentPlayer;
+    #notifyStateChanged = () => {};
     constructor(numPlayers = 2, boardSize = 6) {
         this.#numPlayers = numPlayers;
         this.#players = {};
@@ -26,6 +20,26 @@ class Game {
         this.#board = new Board(boardSize);
         this.#currentPlayer = 0;
         this.#gamePhase = PHASES.Place;
+    }
+
+    setStateChangedNotifier(f) {
+        this.#notifyStateChanged = f;
+    }
+
+    // ----------------------------------------- GETETERS -----------------------------------------
+
+    getGameState() {
+        const statePlayers = {};
+        for (const player of this.getPlayerIds()) {
+            statePlayers[player] = this.getPlayerSupply(player);
+        }
+
+        return {
+            board: this.#board.getBoard(),
+            currentPlayer: PLAYER_IDS[this.#currentPlayer],
+            gamePhase: this.#gamePhase,
+            players: statePlayers
+        };
     }
 
     getBoardSize() {return this.#board.getSize();}
@@ -45,21 +59,51 @@ class Game {
         return {big: player.getBigPieces(), small: player.getSmallPieces()};
     }
 
-    returnToSupply(piece) {
-        this.#players[piece.toUpperCase()].addToSupply(piece);
+    // --------------------------------------------------------------------------------------------
+
+    // ---------------------------------------- VALIDATORS ----------------------------------------
+
+    isValidPlacement(piece, point) {
+        // Condition 1: Piece belongs to current player
+        // Condition 2: The selected point on the board is empty
+        // Condition 3: The current player has the selected piece in their supply
+        return piece.toUpperCase() === this.getCurrentPlayerId() && this.getPieceAt(point) === "" &&
+               this.#players[this.getCurrentPlayerId()].hasPiece(piece);
+    }
+
+    numPointsMatchesGamePhase(points) {
+        if (this.#gamePhase === PHASES.PromoteOne) {
+            return points.length === 1;
+        } else if (this.#gamePhase === PHASES.PromoteThree) {
+            return points.length === 3;
+        } else if (this.#gamePhase === PHASES.PromoteOneOrThree) {
+            return points.length === 1 || points.length === 3;
+        }
+        return false;
+    }
+
+    piecesAllBelongToCurrentPlayer(points) {
+        return points.every((point) => {
+            return this.getPieceAt(point).toUpperCase() === this.getCurrentPlayerId();
+        });
     }
 
     isInARow(points) {
+        if (points.length === 1) return true;
         return this.#board.isInARow(points);
     }
 
-    place(piece, point) {
-        this.#players[piece.toUpperCase()].takeFromSupply(piece);
-        const fallenPieces = this.#board.place(piece, point);
-        for (const fallenPiece of fallenPieces) {
-            this.returnToSupply(fallenPiece);
-        }
-        this.updateGamePhase();
+    isValidPromotion(points) {
+        return this.numPointsMatchesGamePhase(points) && this.piecesAllBelongToCurrentPlayer(points) &&
+               this.isInARow(points);
+    }
+
+    // --------------------------------------------------------------------------------------------
+
+    // ------------------------------------------ HELPERS -----------------------------------------
+
+    returnToSupply(piece) {
+        this.#players[piece.toUpperCase()].addToSupply(piece);
     }
 
     updateGamePhase() {
@@ -85,14 +129,34 @@ class Game {
             this.#gamePhase = PHASES.PromoteThree;
             return;
         } else if (threes.length === 1) {
-            this.promote(threes[0]);
-            return;
+            for (const point of threes[0]) {
+                const promotedPiece = this.getPieceAt(point).toUpperCase();
+                this.#board.remove(point);
+                this.#players[promotedPiece].addToSupply(promotedPiece);
+            }
         }
         this.#gamePhase = PHASES.Place;
         this.#currentPlayer = (this.#currentPlayer + 1) % this.#numPlayers;
     }
 
+    // --------------------------------------------------------------------------------------------
+
+    // -------------------------------------- GAME OPERATIONS -------------------------------------
+
+    place(piece, point) {
+        if (!this.isValidPlacement(piece, point)) return false;
+        this.#players[piece.toUpperCase()].takeFromSupply(piece);
+        const fallenPieces = this.#board.place(piece, point);
+        for (const fallenPiece of fallenPieces) {
+            this.returnToSupply(fallenPiece);
+        }
+        this.updateGamePhase();
+        this.#notifyStateChanged();
+        return true;
+    }
+
     promote(points) {
+        if (!this.isValidPromotion(points)) return false;
         for (const point of points) {
             const promotedPiece = this.getPieceAt(point).toUpperCase();
             this.#board.remove(point);
@@ -100,6 +164,8 @@ class Game {
         }
         this.#currentPlayer = (this.#currentPlayer + 1) % this.#numPlayers; 
         this.#gamePhase = PHASES.Place;
+        this.#notifyStateChanged();
+        return true;
     }
 
     restart() {
@@ -109,6 +175,9 @@ class Game {
         }
         this.#currentPlayer = 0;
         this.#gamePhase = PHASES.Place;
+        this.#notifyStateChanged();
     }
+
+    // --------------------------------------------------------------------------------------------
 }
 export default Game;
