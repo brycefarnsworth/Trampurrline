@@ -1,6 +1,6 @@
 import { PHASES } from "./constants.js";
 
-class UI {
+class UI { // Might need to rename to GameUI at some point to distincguish it from other UIs
     #controller;
     #cells;
     #board = document.getElementById("board");

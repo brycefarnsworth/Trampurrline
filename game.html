@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bumper Tic Tac Toe</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 
@@ -25,10 +25,10 @@
 <script src="/socket.io/socket.io.js"></script>
 <script type="module">
     if (window.location.pathname === "/local") {
-        await import("./main-local.js");
+        await import("/main-local.js");
     }
-    else if (window.location.pathname === "/online") {
-        await import("./main-online.js");
+    else if (window.location.pathname.startsWith("/play/")) {
+        await import("/main-online.js");
     }
 </script>
 

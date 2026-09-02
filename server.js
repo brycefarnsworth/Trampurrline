@@ -1,5 +1,5 @@
 import express from "express";
-import Game from './game.js';
+import GameManager from './game-manager.js';
 import path from "path";
 import { createServer } from "http";
 import { fileURLToPath } from "url";
@@ -11,102 +11,87 @@ const io = new Server(server);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+app.use(express.json());
 app.use(express.static(__dirname));
 
-const serverGame = new Game(2, 6);
-serverGame.setStateChangedNotifier(() => {
-    io.emit("gameStateChanged", serverGame.getGameState());
-});
-
-const PLAYER_IDS = ["X", "O"];
-const players = {
-    "X": null,
-    "O": null
-};
-
-function assignPlayer(socket) {
-    for (const playerId of PLAYER_IDS) {
-        if (!players[playerId]) {
-            players[playerId] = socket.id;
-            return playerId;
-        }
-    }
-    return null;
-}
+const gameManager = new GameManager(io);
 
 io.on("connection", (socket) => {
+    const { gameId } = socket.handshake.auth;
+
+    const connected = gameManager.connectUser(socket, gameId);
+
+    if (!connected) {
+        socket.disconnect();
+        return;
+    }
+
     console.log(`${socket.id} connected!`);
 
-    const playerId = assignPlayer(socket);
-    socket.data.playerId = playerId;
-    // TODO: Make a socket.emit("initialize", ...) that lumps assignPlayer and gameStateChanged together
-    //       Handle player assignment and game state initialization at once.
+    const playerId = gameManager.getSocketPlayerId(socket);
+
     socket.emit("initialize", {
         assignedPlayerId: playerId,
-        gameState: serverGame.getGameState()
+        gameState: gameManager.getGameState(gameId)
     });
-    if (playerId) {
+
+    if (playerId !== "spectator") {
         console.log(`${socket.id} assigned as Player ${playerId}.`);
     } else {
         console.log(`${socket.id} assigned as spectator.`);
     }
 
     socket.on("place", (move) => {
-        const {piece, point} = move;
-        // Check that piece belongs to player.
-        // This might be better off somewhere else at some point.
-        if (socket.data.playerId !== piece.toUpperCase()) {
-            socket.emit("reqFailure");
-            return;
-        }
-        const success = serverGame.place(piece, point);
-        if (success) {
-            socket.emit("reqSuccess");
-        } else {
-            socket.emit("reqFailure");
-        }
-    })
+        const { piece, point } = move;
+        
+        gameManager.requestMove(socket, piece, point);
+    });
 
     socket.on("promote", (promotion) => {
-        const {points} = promotion;
-        // Check that pieces at all points belong to player
-        // This might be better off somewhere else at some point.
-        for (const point of points) {
-            const piece = serverGame.getPieceAt(point);
-            if (socket.data.playerId !== piece.toUpperCase()) {
-                socket.emit("reqFailure");
-                return;
-            }
-        }
-        const success = serverGame.promote(points);
-        if (success) {
-            socket.emit("reqSuccess");
-        } else {
-            socket.emit("reqFailure");
-        }
-    })
+        const { points } = promotion;
+        
+        gameManager.requestPromote(socket, points);
+    });
 
     socket.on("restart", () => {
-        // Make sure request came from an actual player. Spectators cannot restart.
-        // This might be better off somewhere else at some point.
-        if (socket.data.playerId) {
-            serverGame.restart();
-        }
-    })
+        gameManager.requestRestart(socket);
+    });
 
     socket.on("disconnect", () => {
-        if (socket.data.playerId) {
-            players[socket.data.playerId] = null;
-        }
+        gameManager.disconnectUser(socket);
 
         console.log(`${socket.id} disconnected.`);
     });
 });
 
-app.get(["/online", "/local"], (req, res) => {
+app.get("/play", (req, res) => {
+    res.sendFile(path.join(__dirname, "lobby.html"));
+});
+
+app.get("/local", (req, res) => {
+    res.sendfile(path.join(__dirname, "game.html"));
+});
+
+app.get("/play/:gameId", (req, res) => {
+    const { gameId } = req.params;
+
+    if (!gameManager.gameExists(gameId)) {
+        return res.redirect("/play");
+    }
+    
     res.sendFile(path.join(__dirname, "game.html"));
-})
+});
+
+app.get("/api/games", (req, res) => {
+    const gameList = gameManager.getGameList();
+    res.json(gameList);
+});
+
+app.post("/api/games", (req, res) => {
+    const newGameId = gameManager.createGame(req.body);
+    res.json(newGameId);
+});
 
 server.listen(3000, () => {
     console.log("Server running on port 3000");
-})
+});
